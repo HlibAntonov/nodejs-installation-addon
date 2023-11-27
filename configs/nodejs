@@ -1,0 +1,3 @@
+Cmnd_Alias NODE = /usr/bin/npm *, /usr/bin/node *
+
+%ssh-access ALL = NOPASSWD: NODE

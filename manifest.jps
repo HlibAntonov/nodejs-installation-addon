@@ -1,0 +1,107 @@
+version: '1.8.1'
+type: install
+id: 'certified-nodejs-installer'
+name: 'Node.js® and NPM installer for VAP certified templates'
+homepage: https://nodejs.org/en/
+baseUrl: https://raw.githubusercontent.com/DmytroZubelevych/nodejs-installation-addon/main
+description: Installs Node.js® - a JavaScript runtime built on Chrome's V8 JavaScript engine - into the nodes based VAP certified templates. Node.js® uses an event-driven, non-blocking I/O model that makes it lightweight and efficient. Node.js' package ecosystem, npm, is the largest ecosystem of open source libraries in the world.
+categories:
+  - apps/dev-and-admin-tools
+logo: https://raw.githubusercontent.com/DmytroZubelevych/nodejs-installation-addon/main/images/node.png
+
+targetNodes:
+  nodeType:
+    - apache
+    - apache2
+    - apache2-ruby
+    - apache-python
+    - apache-ruby
+    - glassfish
+    - glassfish3
+    - glassfish4
+    - jetty
+    - jetty6
+    - lemp
+    - litespeedadc
+    - litespeedphp
+    - llsmp
+    - nginxphp
+    - nginxphp-dockerized
+    - nginx-ruby
+    - nginxruby
+    - nodejs
+    - payara
+    - tomcat
+    - tomcat6
+    - tomcat7
+    - tomcat8
+    - tomcat85
+    - tomcat9
+    - tomee
+    - tomee-dockerized
+    - wildfly
+    - springboot
+
+settings:
+  main:
+    fields:          
+      - type: list
+        name: version
+        caption: Node.js® major version
+        required: true
+        default: 16
+        values:
+          16: 16
+          18: 18
+          20: 20
+          
+      - type: list
+        name: minorVersion
+        caption: Node.js® minor version
+        required: true
+        dependsOn:
+          version:
+            16:
+            - value: 16.20.2
+              caption: 16.20.2
+            - value: 16.20.1
+              caption: 16.20.1
+            - value: 16.20.0
+              caption: 16.20.0
+            18:
+            - value: latest
+              caption: latest
+            20:
+            - value: latest
+              caption: latest
+
+      - type: spacer
+
+      - type: list
+        name: envName
+        caption: Environment
+        required: true
+        values: []
+
+      - type: list
+        name: nodeGroups
+        caption: Node Group(s)
+        required: true
+        multiSelect: true
+        dependsOn:
+          envName: {}
+
+onBeforeInit: /scripts/onBeforeInit.js
+
+onInstall:
+  - install [${settings.nodeGroups}]:
+      envName: ${settings.envName}
+      jps: logic.jps?_r=${fn.random}
+      settings:
+        nodeGroups: ${settings.nodeGroups}
+        envName: ${settings.envName}
+        version: ${settings.version}
+        minorVersion: ${settings.minorVersion}
+
+success:
+  text: Node.js® runtime version ${settings.version} has been successfully installed on environment ${settings.envName}

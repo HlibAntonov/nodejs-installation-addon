@@ -1,0 +1,159 @@
+version: '1.8.1'
+type: update
+id: 'certified-nodejs-installer'
+name: 'Node.js® and NPM installer for VAP certified templates'
+homepage: https://nodejs.org/en/
+baseUrl: https://raw.githubusercontent.com/DmytroZubelevych/nodejs-installation-addon/main
+description: Installs Node.js® - a JavaScript runtime built on Chrome's V8 JavaScript engine - into the nodes based VAP certified templates. Node.js uses an event-driven, non-blocking I/O model that makes it lightweight and efficient. Node.js' package ecosystem, npm, is the largest ecosystem of open source libraries in the world.
+logo: https://raw.githubusercontent.com/DmytroZubelevych/nodejs-installation-addon/main/images/node.png
+
+targetNodes:
+  nodeType:
+    - apache
+    - apache2
+    - apache2-ruby
+    - apache-python
+    - apache-ruby
+    - glassfish
+    - glassfish3
+    - glassfish4
+    - jetty
+    - jetty6
+    - lemp
+    - litespeedadc
+    - litespeedphp
+    - llsmp
+    - nginxphp
+    - nginxphp-dockerized
+    - nginx-ruby
+    - nginxruby
+    - nodejs
+    - payara
+    - tomcat
+    - tomcat6
+    - tomcat7
+    - tomcat8
+    - tomcat85
+    - tomcat9
+    - tomee
+    - tomee-dockerized
+    - wildfly
+    - springboot
+
+settings:
+  main:
+    fields:
+      - type: list
+        name: version
+        caption: Node.js® major version
+        required: true
+        default: 16
+        values:
+          16: 16
+          18: 18
+          20: 20
+          
+      - type: list
+        name: minorVersion
+        caption: Node.js® minor version
+        required: true
+        dependsOn:
+          version:
+            16:
+            - value: 16.20.2
+              caption: 16.20.2
+            - value: 16.20.1
+              caption: 16.20.1
+            - value: 16.20.0
+              caption: 16.20.0
+            18:
+            - value: latest
+              caption: latest
+            20:
+            - value: latest
+              caption: latest
+    onBeforeInit: /scripts/onBeforeInit.js
+
+buttons:
+  - caption: Change Node.js® Version
+    loadingText: Installing..
+    settings: main
+    confirmText: Are you sure you wish to uninstall the current Node.js® version and install a new one?
+    action: install
+
+onAfterRedeployContainer:
+  - install
+
+onAfterAddNode:
+  - install
+
+onAfterCloneNodes:
+  - install
+
+onInstall:
+  - install
+
+onUninstall:
+  - uninstall
+
+actions:
+  install:
+    - getMasterId
+    - if ("${settings.version}" != '16'):
+      - cmd[${globals.masterId}]: |-
+          wget -O /root/check_distro.sh ${baseUrl}/scripts/check_distro.sh 2>/dev/null;
+          bash /root/check_distro.sh;
+        user: root   
+      - if (response.out == "Non-supported"):
+        - stopEvent:
+            type: warning
+            message: Installation of Node.js® version higher than 16 is not supported because of glibc version lower tran 2.28.       
+    - cmd [${globals.masterId}]: |-
+        if which dnf &>/dev/null; then
+            OS_PACKAGE_MANAGER="dnf"
+        else
+            OS_PACKAGE_MANAGER="yum"
+        fi
+        echo ${OS_PACKAGE_MANAGER}
+      user: root
+    - setGlobals: 
+        osPackageManager: ${response.out}
+    - cmd [${targetNodes.nodeGroup}]: |-
+        ${globals.osPackageManager} -y install ${globals.osPackageManager}-utils
+        yum-config-manager --disable mariadb || true;
+      user: root
+    - uninstall
+    - if ("${settings.minorVersion}" != 'latest'):
+      - setGlobals:
+          minorVersionSuffix: "-${settings.minorVersion}"
+    - else:
+      - setGlobals:
+          minorVersionSuffix: ""
+    - cmd [${targetNodes.nodeGroup}]: |-
+        if which dnf &>/dev/null; then GPG_CHECK_OPTION="--nogpgcheck"; else GPG_CHECK_OPTION=""; fi
+        ${globals.osPackageManager} clean all
+        ${globals.osPackageManager} install https://rpm.nodesource.com/pub_${settings.version}.x/nodistro/repo/nodesource-release-nodistro-1.noarch.rpm -y &&
+        ${globals.osPackageManager} install nodejs${globals.minorVersionSuffix} -y --setopt=nodesource-nodejs.module_hotfixes=1 ${GPG_CHECK_OPTION} &&
+        curl -sL https://dl.yarnpkg.com/rpm/yarn.repo > /etc/yum.repos.d/yarn.repo && ${globals.osPackageManager} -y install yarn ${GPG_CHECK_OPTION} && yum-config-manager --disable yarn nodesource-nsolid nodesource-nodejs
+      user: root
+    - cmd [${targetNodes.nodeGroup}]: |-
+        wget ${baseUrl}/configs/nodejs -O /etc/sudoers.d/nodejs
+        npm update npm; chown -R 700:700 /usr/lib/node_modules
+      user: root
+    - cmd [${targetNodes.nodeGroup}]:
+        - echo -e "export PATH=/usr/lib/node_modules:$HOME/node_modules/.bin:$PATH" >> $HOME/.bashrc;
+
+  uninstall:
+    - cmd [${targetNodes.nodeGroup}]: |-
+        ${globals.osPackageManager} -y remove nodejs nodejs-libs yarn nodesource-release nodesource-release-nodistro 2>&1;
+        rm -rf $HOME/node_modules /etc/sudoers.d/nodejs 2>&1;
+        sed -ci -e "/node_modules/d" $HOME/.bashrc 2>&1;
+      user: root
+
+  getMasterId:
+    - forEach(nodes.${targetNodes.nodeGroup}):
+      - cmd[${@i.id}]: |- 
+          source /.jelenv;  
+          echo ${MASTER_ID};
+      - setGlobals:
+          masterId: ${response.out}
