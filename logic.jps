@@ -1,7 +1,7 @@
 version: '1.8.1'
 type: update
 id: 'certified-nodejs-installer'
-name: 'Node.js® and NPM installer for VAP certified templates'
+name: 'Node.js® and NPM installer for certified templates'
 homepage: https://nodejs.org/en/
 baseUrl: https://raw.githubusercontent.com/DmytroZubelevych/nodejs-installation-addon/main
 description: Installs Node.js® - a JavaScript runtime built on Chrome's V8 JavaScript engine - into the nodes based VAP certified templates. Node.js uses an event-driven, non-blocking I/O model that makes it lightweight and efficient. Node.js' package ecosystem, npm, is the largest ecosystem of open source libraries in the world.
@@ -12,23 +12,56 @@ targetNodes:
     - apache
     - apache2
     - apache2-ruby
+    - apache-lb
     - apache-python
     - apache-ruby
+    - couchbase
+    - dotnet
     - glassfish
     - glassfish3
     - glassfish4
+    - golang
+    - haproxy
+    - javaengine
+    - jenkins
+    - jenkins2
     - jetty
     - jetty6
+    - kubernetes
     - lemp
     - litespeedadc
     - litespeedphp
     - llsmp
+    - mariadb
+    - mariadb10
+    - mariadb-dockerized
+    - memcached
+    - memcached-dockerized
+    - mongodb
+    - mongodb-dockerized
+    - mysql
+    - mysql5
+    - nginx
+    - nginx-dockerized
     - nginxphp
     - nginxphp-dockerized
     - nginx-ruby
     - nginxruby
-    - nodejs
+    - opensearch
+    - opensearch1
     - payara
+    - perconadb
+    - postgres10
+    - postgres11
+    - postgres12
+    - postgres13
+    - postgres14
+    - postgres9
+    - postgresql
+    - redis
+    - redis6
+    - springboot
+    - storage
     - tomcat
     - tomcat6
     - tomcat7
@@ -37,22 +70,13 @@ targetNodes:
     - tomcat9
     - tomee
     - tomee-dockerized
+    - varnish
+    - varnish-dockerized
     - wildfly
-    - springboot
 
 settings:
   main:
-    fields:
-      - type: list
-        name: version
-        caption: Node.js® major version
-        required: true
-        default: 16
-        values:
-          16: 16
-          18: 18
-          20: 20
-          
+    fields:          
       - type: list
         name: minorVersion
         caption: Node.js® minor version
@@ -99,7 +123,7 @@ onUninstall:
 actions:
   install:
     - getMasterId
-    - if ("${settings.version}" != '16'):
+    - if (!"${settings.minorVersion}".startsWith('16')):
       - cmd[${globals.masterId}]: |-
           wget -O /root/check_distro.sh ${baseUrl}/scripts/check_distro.sh 2>/dev/null;
           bash /root/check_distro.sh;
@@ -107,10 +131,10 @@ actions:
       - if (response.out == "Non-supported"):
         - stopEvent:
             type: warning
-            message: Installation of Node.js® version higher than 16 is not supported because of glibc version lower tran 2.28.       
+            message: Installation of Node.js® version higher than 16 is not supported for the selected layer because of glibc version lower than 2.28. Please either use the Node.js® version 16 or consider upgrade to newer OS version for the selected layer.
     - cmd [${globals.masterId}]: |-
-        if which dnf &>/dev/null; then
-            OS_PACKAGE_MANAGER="dnf"
+        if which microdnf &>/dev/null; then
+            OS_PACKAGE_MANAGER="microdnf"
         else
             OS_PACKAGE_MANAGER="yum"
         fi
@@ -119,22 +143,17 @@ actions:
     - setGlobals: 
         osPackageManager: ${response.out}
     - cmd [${targetNodes.nodeGroup}]: |-
-        ${globals.osPackageManager} -y install ${globals.osPackageManager}-utils
+        ${globals.osPackageManager} -y install yum-utils
         yum-config-manager --disable mariadb || true;
       user: root
     - uninstall
-    - if ("${settings.minorVersion}" != 'latest'):
-      - setGlobals:
-          minorVersionSuffix: "-${settings.minorVersion}"
-    - else:
-      - setGlobals:
-          minorVersionSuffix: ""
     - cmd [${targetNodes.nodeGroup}]: |-
-        if which dnf &>/dev/null; then GPG_CHECK_OPTION="--nogpgcheck"; else GPG_CHECK_OPTION=""; fi
         ${globals.osPackageManager} clean all
-        ${globals.osPackageManager} install https://rpm.nodesource.com/pub_${settings.version}.x/nodistro/repo/nodesource-release-nodistro-1.noarch.rpm -y &&
-        ${globals.osPackageManager} install nodejs${globals.minorVersionSuffix} -y --setopt=nodesource-nodejs.module_hotfixes=1 ${GPG_CHECK_OPTION} &&
-        curl -sL https://dl.yarnpkg.com/rpm/yarn.repo > /etc/yum.repos.d/yarn.repo && ${globals.osPackageManager} -y install yarn ${GPG_CHECK_OPTION} && yum-config-manager --disable yarn nodesource-nsolid nodesource-nodejs
+        NODEJS_MAJOR_VERSION=$(echo ${settings.minorVersion} | awk -F . '{print $1}')
+        curl -fsSL https://rpm.nodesource.com/setup_${NODEJS_MAJOR_VERSION}.x | bash - 
+        ${globals.osPackageManager} install nodejs-${settings.minorVersion} -y &&
+        curl -sL https://dl.yarnpkg.com/rpm/yarn.repo > /etc/yum.repos.d/yarn.repo && ${globals.osPackageManager} -y install yarn && yum-config-manager --disable yarn nodesource-nsolid nodesource-nodejs
+        ${globals.osPackageManager} clean all
       user: root
     - cmd [${targetNodes.nodeGroup}]: |-
         wget ${baseUrl}/configs/nodejs -O /etc/sudoers.d/nodejs

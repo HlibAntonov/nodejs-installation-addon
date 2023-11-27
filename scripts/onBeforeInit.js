@@ -9,40 +9,37 @@ for (var i = 0, n = resp.array.length; i < n; i++) {
             tag = resp.array[i].tags[j].name;
             minorVersion = tag.substring(0, tag.indexOf('-'));
             minorVersionsList.push(minorVersion);
-            minorVersions = minorVersionsList.filter((value, index, array) => minorVersionsList.indexOf(value) === index).sort();
+            minorVersionsSorted = minorVersionsList.filter((value, index, array) => minorVersionsList.indexOf(value) === index).sort();
+            minorVersions = minorVersionsSorted.reverse();
         }
     }
 }
 
-if (majorVersions.length > 0) {
-    jps.settings.main.fields[0].values = [];
-    if (!majorVersions.includes("16")){
-        jps.settings.main.fields[0].values.push({
-            value: "16",
-            caption: "16"
-        });
-    }
-    jps.settings.main.fields[1].dependsOn.version = {};
-    for (var i = 0, n = majorVersions.length; i < n; i++) {
-        jps.settings.main.fields[0].values.push({
-            value: majorVersions[i],
-            caption: majorVersions[i]
-        });
-        function firstN(item) {
-            return item.indexOf(majorVersions[i]) === 0;
-        }
+jps.settings.main.fields[0].values = [];
 
-        let minorVersionFiltered = minorVersions.filter(firstN);
-        jps.settings.main.fields[1].dependsOn.version[majorVersions[i]] = [];
-        for (var j = 0, m = minorVersionFiltered.length; j < m; j++) {
-            jps.settings.main.fields[1].dependsOn.version[majorVersions[i]].push({
-                value: minorVersionFiltered[j],
-                caption: minorVersionFiltered[j]
-            })
-        }
-    }
-    jps.settings.main.fields[0].default = majorVersions[0];
+for (var j = 0, m = minorVersions.length; j < m; j++) {
+    jps.settings.main.fields[0].values.push({
+        value: minorVersions[j],
+        caption: minorVersions[j]
+    })
 }
+
+if (!majorVersions.includes("16")){
+    jps.settings.main.fields[0].values.push({
+        value: "16.20.2",
+        caption: "16.20.2"
+    });
+    jps.settings.main.fields[0].values.push({
+        value: "16.20.1",
+        caption: "16.20.1"
+    });
+    jps.settings.main.fields[0].values.push({
+        value: "16.20.0",
+        caption: "16.20.0"
+    });
+}
+
+jps.settings.main.fields[0].default = minorVersions[0];
 
 if (jps.type == "install") {
 
@@ -88,15 +85,15 @@ if (jps.type == "install") {
     }
 
     if (envs.length > 0) {
-        jps.settings.main.fields[3].values = envs;
-        jps.settings.main.fields[3].value = envs[0].value;
-        jps.settings.main.fields[4].dependsOn.envName = nodes;
+        jps.settings.main.fields[2].values = envs;
+        jps.settings.main.fields[2].value = envs[0].value;
+        jps.settings.main.fields[3].dependsOn.envName = nodes;
     }
 
     return { result: 0, settings: jps.settings };
 } else {
     jps.settings.main.fields.push(
-        {"type": "displayfield", "cls": "warning", "height": 30, "hideLabel": true, "markup": "Currently installed NodeJS® version is ${settings.minorVersion}"}
+        {"type": "displayfield", "cls": "warning", "height": 30, "hideLabel": true, "markup": "NodeJS® version currently installed on this layer is ${settings.minorVersion}"}
     )
     var old_distro_markup = "", baseUrl = jps.baseUrl;
     var checkDistroCmd = "wget -O /root/check_distro.sh " + baseUrl + "/scripts/check_distro.sh 2>/dev/null; bash /root/check_distro.sh"
@@ -104,11 +101,7 @@ if (jps.type == "install") {
     if (resp.result !== 0) return resp;
     if (resp.responses[0].out == "Non-supported") {
         old_distro_markup = "NodeJS® versions newer than 16 needs Linux distribution with GlibC version 2.28 or higher and cannot be chosen for current layer."
-        jps.settings.main.fields[0].values = [];
-        jps.settings.main.fields[0].values.push({
-            value: "16",
-            caption: "16"
-        });
+        jps.settings.main.fields[0].values = [{"value":"16.20.2","caption":"16.20.2"},{"value":"16.20.1","caption":"16.20.1"},{"value":"16.20.0","caption":"16.20.0"}];
         jps.settings.main.fields.push(
             {"type": "displayfield", "cls": "warning", "height": 30, "hideLabel": true, "markup": old_distro_markup}
         )
