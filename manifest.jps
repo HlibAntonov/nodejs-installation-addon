@@ -3,11 +3,11 @@ type: install
 id: 'certified-nodejs-installer'
 name: 'Node.js® and NPM installer for certified templates'
 homepage: https://nodejs.org/en/
-baseUrl: https://raw.githubusercontent.com/DmytroZubelevych/nodejs-installation-addon/main
+baseUrl: https://raw.githubusercontent.com/dimkadt/nodejs-installation-addon/main
 description: Installs Node.js® - a JavaScript runtime built on Chrome's V8 JavaScript engine - into the nodes based VAP certified templates. Node.js® uses an event-driven, non-blocking I/O model that makes it lightweight and efficient. Node.js' package ecosystem, npm, is the largest ecosystem of open source libraries in the world.
 categories:
   - apps/dev-and-admin-tools
-logo: https://raw.githubusercontent.com/DmytroZubelevych/nodejs-installation-addon/main/images/node.png
+logo: https://raw.githubusercontent.com/dimkadt/nodejs-installation-addon/main/images/node.png
 
 targetNodes:
   nodeType:

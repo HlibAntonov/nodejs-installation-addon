@@ -3,9 +3,9 @@ type: update
 id: 'certified-nodejs-installer'
 name: 'Node.js® and NPM installer for certified templates'
 homepage: https://nodejs.org/en/
-baseUrl: https://raw.githubusercontent.com/DmytroZubelevych/nodejs-installation-addon/main
+baseUrl: https://raw.githubusercontent.com/dimkadt/nodejs-installation-addon/main
 description: Installs Node.js® - a JavaScript runtime built on Chrome's V8 JavaScript engine - into the nodes based VAP certified templates. Node.js uses an event-driven, non-blocking I/O model that makes it lightweight and efficient. Node.js' package ecosystem, npm, is the largest ecosystem of open source libraries in the world.
-logo: https://raw.githubusercontent.com/DmytroZubelevych/nodejs-installation-addon/main/images/node.png
+logo: https://raw.githubusercontent.com/dimkadt/nodejs-installation-addon/main/images/node.png
 
 targetNodes:
   nodeType:
@@ -123,15 +123,20 @@ onUninstall:
 actions:
   install:
     - getMasterId
+    - cmd[${globals.masterId}]: |-
+        wget -O /root/check_distro.sh ${baseUrl}/scripts/check_distro.sh 2>/dev/null;
+        bash /root/check_distro.sh;
+      user: root
     - if (!"${settings.minorVersion}".startsWith('16')):
-      - cmd[${globals.masterId}]: |-
-          wget -O /root/check_distro.sh ${baseUrl}/scripts/check_distro.sh 2>/dev/null;
-          bash /root/check_distro.sh;
-        user: root   
       - if (response.out == "Non-supported"):
         - stopEvent:
             type: warning
             message: Installation of Node.js® version higher than 16 is not supported for the selected layer because of glibc version lower than 2.28. Please either use the Node.js® version 16 or consider upgrade to newer OS version for the selected layer.
+    - else:
+      - if (response.out == "AlmaLinux"):
+        - stopEvent:
+            type: warning
+            message: Node.js® 16.x is no longer actively supported! For AlmaLinux we encourage you to install a Node.js Active Long Term Support (LTS) version!
     - cmd [${globals.masterId}]: |-
         if which microdnf &>/dev/null; then
             OS_PACKAGE_MANAGER="microdnf"
