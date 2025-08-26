@@ -169,7 +169,7 @@ actions:
 
   uninstall:
     - cmd [${targetNodes.nodeGroup}]: |-
-        ${globals.osPackageManager} -y remove nodejs nodejs-libs yarn nodesource-release nodesource-release-nodistro 2>&1;
+        ${globals.osPackageManager} -y remove nodejs yarn 2>&1;
         rm -rf $HOME/node_modules /etc/sudoers.d/nodejs 2>&1;
         sed -ci -e "/node_modules/d" $HOME/.bashrc 2>&1;
       user: root
