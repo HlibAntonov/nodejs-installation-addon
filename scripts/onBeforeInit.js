@@ -27,7 +27,7 @@ for (var j = 0, m = minorVersions.length; j < m; j++) {
 if (!majorVersions.includes("16")){
     jps.settings.main.fields[0].values.push({
         value: "16.20.2",
-        caption: "16.20.2 (legacy)"
+        caption: "16.20.2"
     });
     jps.settings.main.fields[0].values.push({
         value: "16.20.1",
